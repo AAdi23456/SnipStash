@@ -361,12 +361,21 @@ export default function SnippetsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Snippets Library</h1>
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/dashboard')}
-          >
-            Back to Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => router.push('/snippets/create')}
+              className="flex items-center gap-2"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Create Snippet
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/dashboard')}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
         
         <div className="bg-card rounded-lg p-6 shadow-sm">
@@ -412,11 +421,20 @@ export default function SnippetsPage() {
             </div>
           ) : snippets.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 {(filters.query || filters.language || filters.tags.length > 0) 
                   ? 'No snippets match your search criteria. Try adjusting your filters.'
-                  : 'You don\'t have any snippets yet. Go to the Dashboard to create your first snippet!'}
+                  : 'You don\'t have any snippets yet. Create your first snippet!'}
               </p>
+              {!(filters.query || filters.language || filters.tags.length > 0) && (
+                <Button
+                  onClick={() => router.push('/snippets/create')}
+                  className="flex items-center gap-2"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Create Snippet
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 mt-6">
@@ -466,15 +484,35 @@ export default function SnippetsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t bg-muted/20 pt-2 flex justify-between">
-                    <Button 
-                      onClick={() => handleManageFolders(snippet)}
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-1"
-                    >
-                      <Folder className="h-4 w-4" />
-                      Manage Folders
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleManageFolders(snippet)}
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-1"
+                      >
+                        <Folder className="h-4 w-4" />
+                        Manage Folders
+                      </Button>
+                      <Button 
+                        onClick={() => router.push(`/snippets/${snippet.id}`)}
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-1"
+                      >
+                        <Code className="h-4 w-4" />
+                        View Details
+                      </Button>
+                      <Button 
+                        onClick={() => router.push(`/snippets/edit/${snippet.id}`)}
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-1"
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    </div>
                     <Button 
                       onClick={() => handleCopyCode(snippet)}
                       size="sm"

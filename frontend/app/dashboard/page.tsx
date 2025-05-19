@@ -17,7 +17,9 @@ import {
   Code,
   Copy,
   Clipboard,
-  Clock
+  Clock,
+  Edit,
+  PlusCircle
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../src/components/ui/card';
 
@@ -137,6 +139,14 @@ export default function DashboardPage() {
     }
   };
 
+  const navigateToSnippetDetail = (snippetId: number) => {
+    router.push(`/snippets/${snippetId}`);
+  };
+
+  const navigateToCreateSnippet = () => {
+    router.push('/snippets/create');
+  };
+
   // Render loading state
   if (isLoading) {
     return (
@@ -252,6 +262,10 @@ export default function DashboardPage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <Button onClick={navigateToCreateSnippet} variant="default" size="sm">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Create Snippet
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => router.push('/snippets')}>
                     <Code className="h-4 w-4 mr-2" />
                     View Snippets
@@ -282,6 +296,21 @@ export default function DashboardPage() {
                           <FolderPlus className="h-5 w-5 text-primary" />
                         </div>
                         <span>Create New Folder</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-between group" 
+                      size="lg"
+                      onClick={navigateToCreateSnippet}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="bg-primary/10 p-2 rounded-full">
+                          <PlusCircle className="h-5 w-5 text-primary" />
+                        </div>
+                        <span>Create New Snippet</span>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </Button>
@@ -396,15 +425,27 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground mb-6">
                       This folder doesn't contain any snippets yet.
                     </p>
-                    <Button onClick={() => router.push('/snippets')}>
-                      Manage Snippets
-                    </Button>
+                    <div className="flex gap-3 justify-center">
+                      <Button onClick={navigateToCreateSnippet}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Create Snippet
+                      </Button>
+                      <Button variant="outline" onClick={() => router.push('/snippets')}>
+                        Manage Snippets
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-sm text-muted-foreground">
-                    Found {folderSnippets.length} snippet{folderSnippets.length !== 1 && 's'} in this folder
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-muted-foreground">
+                      Found {folderSnippets.length} snippet{folderSnippets.length !== 1 && 's'} in this folder
+                    </div>
+                    <Button onClick={navigateToCreateSnippet} size="sm">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Create Snippet
+                    </Button>
                   </div>
                   
                   {folderSnippets.map(snippet => (
@@ -422,15 +463,35 @@ export default function DashboardPage() {
                               )}
                             </CardDescription>
                           </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8"
-                            onClick={() => handleCopyCode(snippet.code)}
-                          >
-                            <Copy className="h-3.5 w-3.5 mr-1" />
-                            Copy
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => navigateToSnippetDetail(snippet.id)}
+                            >
+                              <Code className="h-3.5 w-3.5 mr-1" />
+                              View
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => router.push(`/snippets/edit/${snippet.id}`)}
+                            >
+                              <Edit className="h-3.5 w-3.5 mr-1" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => handleCopyCode(snippet.code)}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>

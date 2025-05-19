@@ -18,8 +18,8 @@ const createSnippet = async (req, res) => {
       return res.status(400).json({ message: 'Title, code, and language are required' });
     }
 
-    // Apply auto-tagging and combine with manual tags
-    const finalTags = autoTagCode(code, tags);
+    // Apply auto-tagging and combine with manual tags, including description for context
+    const finalTags = autoTagCode(code, tags, description || '');
 
     // Create the snippet
     const snippet = await Snippet.create({
@@ -222,15 +222,20 @@ const updateSnippet = async (req, res) => {
       return res.status(404).json({ message: 'Snippet not found' });
     }
     
-    // Auto-tag the code and combine with manual tags
-    const finalTags = autoTagCode(code, tags);
+    // Use the provided code or fall back to existing code
+    const codeToUse = code || snippet.code;
+    // Use the provided description or fall back to existing description
+    const descriptionToUse = description !== undefined ? description : snippet.description;
+    
+    // Auto-tag the code and combine with manual tags, including description
+    const finalTags = autoTagCode(codeToUse, tags, descriptionToUse);
     
     // Update the snippet
     await snippet.update({
       title: title || snippet.title,
-      code: code || snippet.code,
+      code: codeToUse,
       language: language || snippet.language,
-      description: description !== undefined ? description : snippet.description
+      description: descriptionToUse
     }, { transaction });
     
     // Remove existing tag associations
