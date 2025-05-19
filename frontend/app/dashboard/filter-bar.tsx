@@ -189,7 +189,7 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Language" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" side="bottom" align="start">
             {LANGUAGE_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={String(option.value)}>
                 {option.label}
@@ -204,7 +204,7 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
             <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Select Tag" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" side="bottom" align="start">
               {allAvailableTags
                 .filter(tag => !selectedTags.includes(tag) && tag !== null && tag !== undefined)
                 .map((tag) => (
@@ -235,12 +235,17 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
       {selectedTags.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {selectedTags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="px-2 py-1">
-              {tag}
-              <X
-                className="ml-1 h-3 w-3 cursor-pointer"
-                onClick={() => handleRemoveTag(tag)}
-              />
+            <Badge key={tag} variant="secondary" className="px-2 py-1 pr-1 flex items-center">
+              <span>{tag}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveTag(tag);
+                }}
+                className="ml-1 p-1 hover:bg-muted rounded-full"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           ))}
         </div>

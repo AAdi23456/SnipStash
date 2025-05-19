@@ -268,15 +268,28 @@ function SnippetsPageContent() {
       
       // Update copy count on the server
       try {
-        await fetch(`http://localhost:5000/api/snippets/${snippet.id}/copy`, {
+        const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/copy`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${user?.token}`
           }
         });
         
-        // Refresh snippet data to get updated copy count
-        fetchSnippets();
+        // Update the snippet locally instead of refetching all snippets
+        if (response.ok) {
+          // Update the copy count and lastCopiedAt in the snippets state
+          setSnippets(prevSnippets => 
+            prevSnippets.map(s => 
+              s.id === snippet.id 
+                ? { 
+                    ...s, 
+                    copyCount: s.copyCount + 1,
+                    lastCopiedAt: new Date().toISOString()
+                  }
+                : s
+            )
+          );
+        }
       } catch (error) {
         console.error('Error updating copy count:', error);
       }
@@ -547,14 +560,15 @@ function SnippetsPageContent() {
                 <span className="text-xs text-muted-foreground">
                   {filters.tags.length} tag{filters.tags.length !== 1 ? 's' : ''} selected
                 </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 w-6 p-0" 
-                  onClick={() => handleFilterChange({...filters, tags: []})}
+                <button 
+                  className="h-6 w-6 p-1 hover:bg-muted rounded-full text-muted-foreground" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFilterChange({...filters, tags: []});
+                  }}
                 >
                   <X className="h-3 w-3" />
-                </Button>
+                </button>
               </div>
             )}
             
@@ -564,14 +578,15 @@ function SnippetsPageContent() {
                 <span className="text-xs text-muted-foreground">
                   {formatLanguage(filters.language)}
                 </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 w-6 p-0" 
-                  onClick={() => handleFilterChange({...filters, language: ''})}
+                <button
+                  className="h-6 w-6 p-1 hover:bg-muted rounded-full text-muted-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFilterChange({...filters, language: ''});
+                  }}
                 >
                   <X className="h-3 w-3" />
-                </Button>
+                </button>
               </div>
             )}
             
