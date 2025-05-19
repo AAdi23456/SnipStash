@@ -26,6 +26,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 interface Folder {
   id: number;
   name: string;
+  createdAt: string;
+  Snippets?: any[];
 }
 
 interface Tag {
@@ -42,10 +44,16 @@ interface Snippet {
   userId: number;
   createdAt: string;
   updatedAt: string;
-  Tags: Tag[];
-  Folders?: Folder[];
   copyCount: number;
   lastCopiedAt: string | null;
+  Tags?: { id: number; name: string }[];
+  Folders?: Folder[];
+}
+
+interface Activity {
+  type: string;
+  description: string;
+  date: string;
 }
 
 export default function DashboardPage() {
@@ -58,6 +66,8 @@ export default function DashboardPage() {
     total: 0,
     recent: 0
   });
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -79,13 +89,138 @@ export default function DashboardPage() {
     }
   }, [selectedFolderId, user, isAuthenticated]);
 
+  // Fetch folder stats and recent activities
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      fetchFolderStats();
+      fetchRecentActivities();
+    }
+  }, [user, isAuthenticated]);
+
+  const fetchFolderStats = async () => {
+    if (!user) return;
+    
+    try {
+      // Get all folders
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/folders', {
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      });
+      
+      if (response.ok) {
+        const folders = await response.json() as Folder[];
+        
+        // Calculate total folders
+        const totalFolders = folders.length;
+        
+        // Calculate recently added folders (created in the last 7 days)
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        const recentFolders = folders.filter((folder: Folder) => {
+          const createdAt = new Date(folder.createdAt);
+          return createdAt > oneWeekAgo;
+        }).length;
+        
+        setFolderStats({
+          total: totalFolders,
+          recent: recentFolders
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching folder stats:', error);
+    }
+  };
+
+  const fetchRecentActivities = async () => {
+    if (!user) return;
+    
+    setIsLoadingActivities(true);
+    try {
+      // Fetch latest snippets to determine recent activity
+      const snippetsResponse = await fetch('https://snipstash-9tms.onrender.com/api/snippets', {
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      });
+      
+      // Fetch folders to track folder activities
+      const foldersResponse = await fetch('https://snipstash-9tms.onrender.com/api/folders', {
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      });
+      
+      if (snippetsResponse.ok && foldersResponse.ok) {
+        const snippets = await snippetsResponse.json() as Snippet[];
+        const folders = await foldersResponse.json() as Folder[];
+        
+        const activities: Activity[] = [];
+        
+        // Recent snippet creations
+        const recentSnippets = snippets
+          .sort((a: Snippet, b: Snippet) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 3);
+          
+        recentSnippets.forEach((snippet: Snippet) => {
+          activities.push({
+            type: 'snippet_created',
+            description: `Snippet "${snippet.title}" created`,
+            date: snippet.createdAt
+          });
+        });
+        
+        // Recent snippet usages (copies)
+        const recentlyUsedSnippets = snippets
+          .filter(snippet => snippet.lastCopiedAt)
+          .sort((a: Snippet, b: Snippet) => 
+            new Date(b.lastCopiedAt || '').getTime() - new Date(a.lastCopiedAt || '').getTime()
+          )
+          .slice(0, 3);
+          
+        recentlyUsedSnippets.forEach((snippet: Snippet) => {
+          activities.push({
+            type: 'snippet_copied',
+            description: `Snippet "${snippet.title}" copied`,
+            date: snippet.lastCopiedAt as string
+          });
+        });
+        
+        // Recent folder creations
+        const recentFolders = folders
+          .sort((a: Folder, b: Folder) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 3);
+          
+        recentFolders.forEach((folder: Folder) => {
+          activities.push({
+            type: 'folder_created',
+            description: `Folder "${folder.name}" created`,
+            date: folder.createdAt
+          });
+        });
+        
+        // Sort all activities by date (newest first) and take top 5
+        const sortedActivities = activities
+          .sort((a: Activity, b: Activity) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5);
+        
+        setRecentActivities(sortedActivities);
+      }
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
   const fetchFolderSnippets = async () => {
     if (!user) return;
     
     setIsLoadingSnippets(true);
     try {
       // Build URL with query parameters
-      let url = new URL('http://localhost:5000/api/snippets');
+      let url = new URL('https://snipstash-9tms.onrender.com/api/snippets');
       
       // Add folder filter if a folder is selected
       if (selectedFolderId !== null) {
@@ -117,7 +252,9 @@ export default function DashboardPage() {
   };
   
   const handleFoldersChanged = () => {
-    // Could update folder stats here if needed
+    // Update folder stats when folders change
+    fetchFolderStats();
+    fetchRecentActivities();
   };
 
   const handleLogout = () => {
@@ -145,6 +282,49 @@ export default function DashboardPage() {
 
   const navigateToCreateSnippet = () => {
     router.push('/snippets/create');
+  };
+
+  // Format date for better display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Today
+    if (date.toDateString() === now.toDateString()) {
+      return `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Within last week
+    const oneWeekAgo = new Date(now);
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    if (date > oneWeekAgo) {
+      const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      return `${days} days ago`;
+    }
+    
+    // Older than a week
+    return date.toLocaleDateString();
+  };
+
+  // Get icon for activity type
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'snippet_created':
+        return <PlusCircle className="w-2 h-2 text-primary" />;
+      case 'snippet_copied':
+        return <Copy className="w-2 h-2 text-primary" />;
+      case 'folder_created':
+        return <FolderPlus className="w-2 h-2 text-primary" />;
+      default:
+        return <Clock className="w-2 h-2 text-primary" />;
+    }
   };
 
   // Render loading state
@@ -377,37 +557,38 @@ export default function DashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative pl-6 border-l space-y-4">
-                    <div className="relative">
-                      <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      </div>
-                      <div className="mb-1 text-sm font-medium">New folder created</div>
-                      <div className="text-xs text-muted-foreground">Today, 10:30 AM</div>
+                  {isLoadingActivities ? (
+                    <div className="py-8 flex justify-center">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
                     </div>
-                    
-                    <div className="relative">
-                      <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      </div>
-                      <div className="mb-1 text-sm font-medium">Folder renamed</div>
-                      <div className="text-xs text-muted-foreground">Yesterday, 2:15 PM</div>
+                  ) : recentActivities.length === 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No recent activity found</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Activity will appear here as you use the app
+                      </p>
                     </div>
-                    
-                    <div className="relative">
-                      <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      </div>
-                      <div className="mb-1 text-sm font-medium">Account updated</div>
-                      <div className="text-xs text-muted-foreground">2 days ago</div>
+                  ) : (
+                    <div className="relative pl-6 border-l space-y-4">
+                      {recentActivities.map((activity, index) => (
+                        <div key={index} className="relative">
+                          <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
+                            <div className="w-2 h-2 rounded-full bg-primary"></div>
+                          </div>
+                          <div className="mb-1 text-sm font-medium">{activity.description}</div>
+                          <div className="text-xs text-muted-foreground">{formatDate(activity.date)}</div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </CardContent>
-                <CardFooter className="pt-0">
-                  <Button variant="ghost" size="sm" className="ml-auto">
-                    View all activity
-                  </Button>
-                </CardFooter>
+                {recentActivities.length > 0 && (
+                  <CardFooter className="pt-0">
+                    <Button variant="ghost" size="sm" className="ml-auto">
+                      View all activity
+                    </Button>
+                  </CardFooter>
+                )}
               </Card>
             </div>
           ) : (
@@ -456,7 +637,7 @@ export default function DashboardPage() {
                             <CardTitle className="text-lg">{snippet.title}</CardTitle>
                             <CardDescription>
                               {formatLanguage(snippet.language)} snippet • 
-                              {snippet.Tags.length > 0 && (
+                              {snippet.Tags && snippet.Tags.length > 0 && (
                                 <span className="ml-1">
                                   {snippet.Tags.map(tag => tag.name).join(', ')}
                                 </span>

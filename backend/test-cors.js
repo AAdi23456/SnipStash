@@ -19,7 +19,7 @@ const testData = {
 async function testGetSnippets() {
   try {
     console.log('Testing GET /api/snippets endpoint...');
-    const response = await fetch('http://localhost:5000/api/snippets', {
+    const response = await fetch('https://snipstash-9tms.onrender.com/api/snippets', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -45,7 +45,7 @@ async function testCreateSnippet() {
     console.log('Testing POST /api/snippets endpoint...');
     console.log('Request payload:', testData);
     
-    const response = await fetch('http://localhost:5000/api/snippets', {
+    const response = await fetch('https://snipstash-9tms.onrender.com/api/snippets', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

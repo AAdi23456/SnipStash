@@ -43,7 +43,7 @@ export default function CreateFolder({ onFolderCreated, children }: CreateFolder
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/folders', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/folders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -78,7 +78,7 @@ export default function SnippetDetailPage({ params }: { params: PageParams }) {
   const fetchSnippet = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/snippets/${snippetId}`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${snippetId}`, {
         headers: {
           'Authorization': `Bearer ${user?.token}`
         }
@@ -109,7 +109,7 @@ export default function SnippetDetailPage({ params }: { params: PageParams }) {
       toastSnippetCopied();
       
       // Update copy count on the server
-      await fetch(`http://localhost:5000/api/snippets/${snippetId}/copy`, {
+      await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${snippetId}/copy`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user?.token}`

@@ -3,7 +3,7 @@ interface RequestOptions extends RequestInit {
   data?: any;
 }
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://snipstash-9tms.onrender.com/api';
 
 export async function fetchAPI(
   endpoint: string,

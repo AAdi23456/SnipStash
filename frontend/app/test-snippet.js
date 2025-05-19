@@ -38,7 +38,7 @@ async function testCreateSnippet() {
     console.log('Sending request to create snippet...');
     console.log('Request data:', testSnippet);
     
-    const response = await fetch('http://localhost:5000/api/snippets', {
+    const response = await fetch('https://snipstash-9tms.onrender.com/api/snippets', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

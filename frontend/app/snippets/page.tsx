@@ -138,7 +138,7 @@ function SnippetsPageContent() {
     if (!user) return;
     
     try {
-      const response = await fetch('http://localhost:5000/api/folders', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/folders', {
         headers: {
           'Authorization': `Bearer ${user.token}`
         }
@@ -185,7 +185,7 @@ function SnippetsPageContent() {
     if (!user) return;
     
     try {
-      const response = await fetch('http://localhost:5000/api/tags', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/tags', {
         headers: {
           'Authorization': `Bearer ${user.token}`
         }
@@ -206,7 +206,7 @@ function SnippetsPageContent() {
     setIsLoadingSnippets(true);
     try {
       // Build URL with query parameters
-      const url = new URL('http://localhost:5000/api/snippets');
+      const url = new URL('https://snipstash-9tms.onrender.com/api/snippets');
       
       // Add sorting parameter
       if (sortBy === 'most-used') {
@@ -268,7 +268,7 @@ function SnippetsPageContent() {
       
       // Update copy count on the server
       try {
-        const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/copy`, {
+        const response = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${snippet.id}/copy`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${user?.token}`
@@ -326,7 +326,7 @@ function SnippetsPageContent() {
     
     setIsSubmittingFolders(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/snippets/${selectedSnippet.id}/folders`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${selectedSnippet.id}/folders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

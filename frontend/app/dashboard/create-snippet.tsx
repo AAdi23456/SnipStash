@@ -81,7 +81,7 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
         .filter(tag => tag.length > 0);
       
       // First create the snippet
-      const response = await fetch('http://localhost:5000/api/snippets', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/snippets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
       
       // If folders are selected, assign the snippet to those folders
       if (selectedFolderIds.length > 0) {
-        const folderResponse = await fetch(`http://localhost:5000/api/snippets/${createdSnippet.id}/folders`, {
+        const folderResponse = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${createdSnippet.id}/folders`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

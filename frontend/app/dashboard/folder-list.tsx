@@ -53,7 +53,7 @@ export default function FolderList({ selectedFolderId, onFolderSelect, onFolders
   const fetchFolders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/folders', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/folders', {
         headers: {
           'Authorization': `Bearer ${user?.token}`
         }
@@ -109,7 +109,7 @@ export default function FolderList({ selectedFolderId, onFolderSelect, onFolders
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/folders/${editFolder.id}`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/folders/${editFolder.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export default function FolderList({ selectedFolderId, onFolderSelect, onFolders
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/folders/${folderToDelete.id}`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/folders/${folderToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user?.token}`

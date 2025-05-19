@@ -55,7 +55,7 @@ export default function CreateSnippetPage() {
         tags: tagArray
       });
 
-      const response = await fetch('http://localhost:5000/api/snippets', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/snippets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

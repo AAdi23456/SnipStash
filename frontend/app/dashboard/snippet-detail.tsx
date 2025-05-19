@@ -98,7 +98,7 @@ export default function SnippetDetail({
   const fetchFolders = async () => {
     setIsLoadingFolders(true);
     try {
-      const response = await fetch('http://localhost:5000/api/folders', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/folders', {
         headers: {
           'Authorization': `Bearer ${user?.token}`
         }
@@ -137,7 +137,7 @@ export default function SnippetDetail({
       toastSnippetCopied();
       
       // Update the copy count on the server
-      const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/copy`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${snippet.id}/copy`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user?.token}`
@@ -169,7 +169,7 @@ export default function SnippetDetail({
     
     setIsDeleting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${snippet.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user?.token}`
@@ -206,7 +206,7 @@ export default function SnippetDetail({
   const handleSaveFolders = async () => {
     setIsSavingFolders(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/folders`, {
+      const response = await fetch(`https://snipstash-9tms.onrender.com/api/snippets/${snippet.id}/folders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
