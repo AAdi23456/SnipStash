@@ -16,9 +16,10 @@ import {
   DialogTitle,
   DialogFooter
 } from '../../src/components/ui/dialog';
-import { CheckCircle2, Code, Folder, PlusCircle } from 'lucide-react';
+import { CheckCircle2, Code, Copy, Edit, Folder, FolderClosed, PlusCircle, Search, SlidersHorizontal, Filter } from 'lucide-react';
 import { Checkbox } from '../../src/components/ui/checkbox';
 import { Label } from '../../src/components/ui/label';
+import { Skeleton } from '../../src/components/ui/skeleton';
 
 // Define types matching our backend
 interface Tag {
@@ -69,6 +70,9 @@ export default function SnippetsPage() {
   const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>([]);
   const [isSubmittingFolders, setIsSubmittingFolders] = useState(false);
   
+  // For UI controls
+  const [isFilterVisible, setIsFilterVisible] = useState(true);
+  
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -79,7 +83,6 @@ export default function SnippetsPage() {
   // Load snippets and tags on initial load
   useEffect(() => {
     if (user && isAuthenticated) {
-      showInfoToast('Snippets loaded');
       fetchSnippets();
       fetchAvailableTags();
       fetchFolders();
@@ -187,11 +190,9 @@ export default function SnippetsPage() {
       
       if (filters.tags.length > 0) {
         url.searchParams.append('tags', filters.tags.join(','));
-        console.log('Sending tags to API:', filters.tags.join(','));
       }
       
       const finalUrl = url.toString();
-      console.log('Final API URL:', finalUrl);
       
       const response = await fetch(finalUrl, {
         headers: {
@@ -342,11 +343,17 @@ export default function SnippetsPage() {
     });
   };
 
+  // Toggle filter visibility
+  const toggleFilterVisibility = () => {
+    setIsFilterVisible(!isFilterVisible);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-lg">Loading...</p>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <p className="mt-4 text-lg">Loading...</p>
         </div>
       </div>
     );
@@ -357,71 +364,143 @@ export default function SnippetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Snippets Library</h1>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => router.push('/snippets/create')}
-              className="flex items-center gap-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Create Snippet
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => router.push('/dashboard')}
-            >
-              Back to Dashboard
-            </Button>
+    <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header with gradient background */}
+        <div className="rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 p-6 shadow-md">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Snippets Library</h1>
+              <p className="text-slate-300 mt-1">Manage and organize your code snippets</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => router.push('/snippets/create')}
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Create Snippet
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/dashboard')}
+                className="text-white border-white/20 hover:bg-white/10 hover:text-white"
+              >
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </div>
         
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <h2 className="text-2xl font-semibold">All Snippets</h2>
-              <div className="flex space-x-1">
-                <Button 
-                  size="sm" 
-                  variant={sortBy === 'newest' ? 'default' : 'outline'} 
-                  onClick={() => handleSortChange('newest')}
-                >
-                  Newest
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant={sortBy === 'most-used' ? 'default' : 'outline'} 
-                  onClick={() => handleSortChange('most-used')}
-                >
-                  Most Used
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant={sortBy === 'recently-used' ? 'default' : 'outline'} 
-                  onClick={() => handleSortChange('recently-used')}
-                >
-                  Recently Copied
-                </Button>
+        <div className="bg-card rounded-lg shadow-sm border border-border">
+          {/* Filter and Sort Controls */}
+          <div className="p-4 md:p-6 border-b">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold flex items-center">
+                    <Code className="h-5 w-5 mr-2 text-primary" />
+                    All Snippets
+                    <Badge className="ml-2">{snippets.length}</Badge>
+                  </h2>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex space-x-1 rounded-md overflow-hidden border">
+                    <Button 
+                      size="sm" 
+                      variant={sortBy === 'newest' ? 'default' : 'outline'} 
+                      onClick={() => handleSortChange('newest')}
+                      className={sortBy === 'newest' ? 'rounded-none' : 'rounded-none border-0'}
+                    >
+                      Newest
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={sortBy === 'most-used' ? 'default' : 'outline'} 
+                      onClick={() => handleSortChange('most-used')}
+                      className={sortBy === 'most-used' ? 'rounded-none' : 'rounded-none border-0 border-x'}
+                    >
+                      Most Used
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={sortBy === 'recently-used' ? 'default' : 'outline'} 
+                      onClick={() => handleSortChange('recently-used')}
+                      className={sortBy === 'recently-used' ? 'rounded-none' : 'rounded-none border-0'}
+                    >
+                      Recently Copied
+                    </Button>
+                  </div>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={toggleFilterVisibility}
+                    className="flex items-center gap-1"
+                  >
+                    <Filter className="h-4 w-4" />
+                    {isFilterVisible ? 'Hide Filters' : 'Show Filters'}
+                  </Button>
+                </div>
               </div>
+              
+              {/* Filter Bar */}
+              {isFilterVisible && (
+                <div className="border-t pt-4 mt-2">
+                  <FilterBar 
+                    onFilterChange={handleFilterChange} 
+                    availableTags={availableTags}
+                    initialFilters={filters}
+                  />
+                </div>
+              )}
             </div>
-            
-            {/* Filter Bar */}
-            <FilterBar 
-              onFilterChange={handleFilterChange} 
-              availableTags={availableTags}
-              initialFilters={filters}
-            />
           </div>
           
+          {/* Loading State */}
           {isLoadingSnippets ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">Loading snippets...</p>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, index) => (
+                  <Card key={index} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <Skeleton className="h-6 w-1/2" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-24 w-full" />
+                      <Skeleton className="h-4 w-full mt-3" />
+                      <div className="flex gap-2 mt-3">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="border-t pt-3 flex justify-between">
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-8 w-24" />
+                      </div>
+                      <Skeleton className="h-8 w-24" />
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             </div>
           ) : snippets.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground mb-4">
+            <div className="py-16 text-center">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">No snippets found</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 {(filters.query || filters.language || filters.tags.length > 0) 
                   ? 'No snippets match your search criteria. Try adjusting your filters.'
                   : 'You don\'t have any snippets yet. Create your first snippet!'}
@@ -437,92 +516,116 @@ export default function SnippetsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 mt-6">
-              {snippets.map((snippet) => (
-                <Card key={snippet.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl">{snippet.title}</CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{formatLanguage(snippet.language)}</Badge>
-                        {snippet.copyCount > 0 && (
-                          <Badge variant="secondary">
-                            {snippet.copyCount} {snippet.copyCount === 1 ? 'copy' : 'copies'}
-                          </Badge>
-                        )}
+            <div className="p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {snippets.map((snippet) => (
+                  <Card key={snippet.id} className="overflow-hidden group transition-all duration-300 hover:shadow-md border border-border hover:border-primary/30">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-xl group-hover:text-primary transition-colors">{snippet.title}</CardTitle>
+                        <Badge variant="outline" className="bg-primary/5">{formatLanguage(snippet.language)}</Badge>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {snippet.Tags?.map((tag) => (
-                        <Badge key={tag.id} variant="secondary" className="text-xs">
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                    {snippet.Folders && snippet.Folders.length > 0 && (
+                      
                       <div className="flex flex-wrap gap-1 mt-2">
-                        <span className="text-xs text-muted-foreground">Folders:</span>
-                        {snippet.Folders.map((folder) => (
-                          <Badge key={folder.id} variant="outline" className="text-xs flex items-center gap-1">
-                            <Folder className="h-3 w-3" />
-                            {folder.name}
+                        {snippet.Tags?.map((tag) => (
+                          <Badge key={tag.id} variant="secondary" className="text-xs">
+                            {tag.name}
                           </Badge>
                         ))}
                       </div>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-muted/50 rounded p-2 font-mono text-sm overflow-hidden line-clamp-5 whitespace-pre-wrap">
-                      {snippet.code}
-                    </div>
-                    {snippet.description && (
-                      <p className="text-sm text-muted-foreground mt-2">{snippet.description}</p>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-2 flex flex-wrap gap-x-4">
-                      <span>Created: {formatDate(snippet.createdAt)}</span>
-                      {snippet.lastCopiedAt && <span>Last copied: {formatDate(snippet.lastCopiedAt)}</span>}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t bg-muted/20 pt-2 flex justify-between">
-                    <div className="flex gap-2">
+                      
+                      {snippet.Folders && snippet.Folders.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="flex items-center">
+                            <FolderClosed className="h-3 w-3 mr-1 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground mr-1">Folders:</span>
+                          </div>
+                          {snippet.Folders.map((folder) => (
+                            <Badge key={folder.id} variant="outline" className="text-xs flex items-center gap-1">
+                              {folder.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </CardHeader>
+                    
+                    <CardContent>
+                      <div className="bg-muted/50 rounded p-3 font-mono text-sm overflow-hidden line-clamp-5 whitespace-pre-wrap border border-border/50">
+                        {snippet.code}
+                      </div>
+                      
+                      {snippet.description && (
+                        <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{snippet.description}</p>
+                      )}
+                      
+                      <div className="text-xs text-muted-foreground mt-3 flex flex-wrap gap-x-4">
+                        <span className="flex items-center">
+                          Created: {formatDate(snippet.createdAt)}
+                        </span>
+                        {snippet.copyCount > 0 && (
+                          <span className="flex items-center">
+                            <Copy className="h-3 w-3 mr-1" />
+                            {snippet.copyCount} {snippet.copyCount === 1 ? 'copy' : 'copies'}
+                          </span>
+                        )}
+                        {snippet.lastCopiedAt && (
+                          <span>Last copied: {formatDate(snippet.lastCopiedAt)}</span>
+                        )}
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter className="border-t bg-muted/10 pt-3 flex flex-wrap justify-between gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          onClick={() => handleManageFolders(snippet)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center gap-1 h-8"
+                        >
+                          <Folder className="h-3 w-3" />
+                          <span className="hidden sm:inline">Folders</span>
+                        </Button>
+                        <Button 
+                          onClick={() => router.push(`/snippets/${snippet.id}`)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center gap-1 h-8"
+                        >
+                          <Code className="h-3 w-3" />
+                          <span className="hidden sm:inline">View</span>
+                        </Button>
+                        <Button 
+                          onClick={() => router.push(`/snippets/edit/${snippet.id}`)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center gap-1 h-8"
+                        >
+                          <Edit className="h-3 w-3" />
+                          <span className="hidden sm:inline">Edit</span>
+                        </Button>
+                      </div>
                       <Button 
-                        onClick={() => handleManageFolders(snippet)}
+                        onClick={() => handleCopyCode(snippet)}
                         size="sm"
-                        variant="outline"
-                        className="flex items-center gap-1"
+                        disabled={copyingSnippets[snippet.id]}
+                        className="h-8"
                       >
-                        <Folder className="h-4 w-4" />
-                        Manage Folders
+                        {copyingSnippets[snippet.id] ? (
+                          <div className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 animate-pulse" />
+                            <span>Copied!</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Copy className="h-3 w-3" />
+                            <span>Copy</span>
+                          </div>
+                        )}
                       </Button>
-                      <Button 
-                        onClick={() => router.push(`/snippets/${snippet.id}`)}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <Code className="h-4 w-4" />
-                        View Details
-                      </Button>
-                      <Button 
-                        onClick={() => router.push(`/snippets/edit/${snippet.id}`)}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </div>
-                    <Button 
-                      onClick={() => handleCopyCode(snippet)}
-                      size="sm"
-                      disabled={copyingSnippets[snippet.id]}
-                    >
-                      {copyingSnippets[snippet.id] ? 'Copying...' : 'Copy Code'}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -534,22 +637,24 @@ export default function SnippetsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Folder className="h-5 w-5" />
-              Assign to Additional Folders
+              Assign to Folders
             </DialogTitle>
             <DialogDescription>
-              Select folders to add this snippet to. Snippets remain in previously assigned folders.
+              Select folders to organize this snippet. You can assign a snippet to multiple folders.
             </DialogDescription>
           </DialogHeader>
           
           <div className="mt-4 max-h-[300px] overflow-y-auto">
             {folders.length === 0 ? (
-              <div className="py-4 text-center">
-                <p className="text-sm text-muted-foreground">No folders available. Create folders in the dashboard first.</p>
+              <div className="py-6 text-center border border-dashed rounded-lg">
+                <FolderClosed className="h-10 w-10 mx-auto text-muted-foreground opacity-50 mb-2" />
+                <p className="text-sm text-muted-foreground">No folders available.</p>
+                <p className="text-xs text-muted-foreground mt-1">Create folders in the dashboard to organize your snippets.</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {folders.map(folder => (
-                  <div key={folder.id} className="flex items-center space-x-2">
+                  <div key={folder.id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted transition-colors">
                     <Checkbox 
                       id={`folder-${folder.id}`} 
                       checked={selectedFolderIds.includes(folder.id)} 
@@ -557,9 +662,9 @@ export default function SnippetsPage() {
                     />
                     <Label 
                       htmlFor={`folder-${folder.id}`}
-                      className="flex items-center gap-2 cursor-pointer text-sm"
+                      className="flex items-center gap-2 cursor-pointer text-sm w-full"
                     >
-                      <Folder className="h-4 w-4" />
+                      <Folder className="h-4 w-4 text-primary/70" />
                       {folder.name}
                     </Label>
                   </div>
@@ -579,8 +684,19 @@ export default function SnippetsPage() {
             <Button 
               onClick={saveFolderAssignments} 
               disabled={isSubmittingFolders || folders.length === 0}
+              className="gap-1"
             >
-              {isSubmittingFolders ? 'Saving...' : 'Save'}
+              {isSubmittingFolders ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-current border-r-transparent animate-spin rounded-full"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Save Changes
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
