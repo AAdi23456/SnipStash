@@ -6,6 +6,7 @@ require('./models');
 const authRoutes = require('./routes/authRoutes');
 const snippetRoutes = require('./routes/snippetRoutes');
 const tagRoutes = require('./routes/tagRoutes');
+const folderRoutes = require('./routes/folderRoutes');
 
 dotenv.config();
 
@@ -13,16 +14,14 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/snippets', snippetRoutes);
 app.use('/api/tags', tagRoutes);
+app.use('/api/folders', folderRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

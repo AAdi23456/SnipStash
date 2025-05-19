@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,32 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown, FolderIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "../../context/AuthContext";
-import { toastSnippetCopied, toastSnippetDeleted } from "../../lib/toast-utils";
+import { toastSnippetCopied, toastSnippetDeleted, showSuccessToast, showErrorToast } from "../../lib/toast-utils";
 
 interface Tag {
+  id: number;
+  name: string;
+}
+
+interface Folder {
   id: number;
   name: string;
 }
@@ -28,22 +48,62 @@ interface Snippet {
   createdAt: string;
   updatedAt: string;
   Tags: Tag[];
+  Folders?: Folder[];
   copyCount: number;
   lastCopiedAt: string | null;
 }
 
 export default function SnippetDetail({ 
   snippet: initialSnippet, 
-  onDelete 
+  onDelete,
+  onSnippetUpdate
 }: { 
   snippet: Snippet;
   onDelete?: (id: number) => void;
+  onSnippetUpdate?: (snippet: Snippet) => void;
 }) {
   const [snippet, setSnippet] = useState<Snippet>(initialSnippet);
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>([]);
+  const [isLoadingFolders, setIsLoadingFolders] = useState(false);
+  const [isSavingFolders, setIsSavingFolders] = useState(false);
+  const [foldersOpen, setFoldersOpen] = useState(false);
   const { user } = useAuth();
+
+  // Fetch folders when dialog opens
+  useEffect(() => {
+    if (open && user) {
+      fetchFolders();
+      
+      // Initialize selected folder IDs from snippet
+      if (snippet.Folders) {
+        setSelectedFolderIds(snippet.Folders.map(folder => folder.id));
+      }
+    }
+  }, [open, user, snippet.Folders]);
+
+  const fetchFolders = async () => {
+    setIsLoadingFolders(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/folders', {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+      }
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+    } finally {
+      setIsLoadingFolders(false);
+    }
+  };
 
   // Format language name for display
   const formatLanguage = (lang: string) => {
@@ -80,12 +140,20 @@ export default function SnippetDetail({
         
         if (response.ok) {
           const data = await response.json();
-          // Update local state with new copy count
-          setSnippet(prev => ({
-            ...prev,
+          // Create updated snippet
+          const updatedSnippet = {
+            ...snippet,
             copyCount: data.copyCount,
             lastCopiedAt: data.lastCopiedAt
-          }));
+          };
+          
+          // Update local state
+          setSnippet(updatedSnippet);
+          
+          // Notify parent component if callback exists
+          if (onSnippetUpdate) {
+            onSnippetUpdate(updatedSnippet);
+          }
         }
       } catch (err) {
         console.error('Could not log copy operation', err);
@@ -93,7 +161,10 @@ export default function SnippetDetail({
     } catch (err) {
       console.error('Failed to copy text: ', err);
     } finally {
-      setIsCopying(false);
+      // Add a small delay before enabling the button again
+      setTimeout(() => {
+        setIsCopying(false);
+      }, 500);
     }
   };
 
@@ -126,6 +197,49 @@ export default function SnippetDetail({
     }
   };
 
+  const toggleFolder = (folderId: number) => {
+    setSelectedFolderIds(current => 
+      current.includes(folderId)
+        ? current.filter(id => id !== folderId)
+        : [...current, folderId]
+    );
+  };
+
+  const handleSaveFolders = async () => {
+    setIsSavingFolders(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/folders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({
+          folderIds: selectedFolderIds
+        })
+      });
+      
+      if (response.ok) {
+        const updatedSnippet = await response.json();
+        setSnippet(updatedSnippet);
+        
+        if (onSnippetUpdate) {
+          onSnippetUpdate(updatedSnippet);
+        }
+        
+        showSuccessToast('Folders updated successfully');
+      } else {
+        const data = await response.json();
+        showErrorToast(data.message || 'Failed to update folders');
+      }
+    } catch (error) {
+      console.error('Error updating folders:', error);
+      showErrorToast('Error updating folders');
+    } finally {
+      setIsSavingFolders(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -146,6 +260,12 @@ export default function SnippetDetail({
               </span>
             ))}
           </div>
+          {snippet.Folders && snippet.Folders.length > 0 && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+              <FolderIcon size={12} />
+              <span>{snippet.Folders.length === 1 ? '1 folder' : `${snippet.Folders.length} folders`}</span>
+            </div>
+          )}
         </div>
       </DialogTrigger>
       
@@ -204,6 +324,62 @@ export default function SnippetDetail({
             </div>
           </div>
         )}
+
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-2">Folders</h4>
+          <div className="flex flex-col space-y-2">
+            <Popover open={foldersOpen} onOpenChange={setFoldersOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={foldersOpen}
+                  className="w-full justify-between"
+                  disabled={isLoadingFolders}
+                >
+                  {isLoadingFolders 
+                    ? "Loading folders..." 
+                    : selectedFolderIds.length > 0
+                      ? `${selectedFolderIds.length} folder${selectedFolderIds.length !== 1 ? 's' : ''} selected`
+                      : "Select folders"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search folders..." />
+                  <CommandEmpty>No folders found</CommandEmpty>
+                  <CommandGroup>
+                    {folders.map((folder) => (
+                      <CommandItem
+                        key={folder.id}
+                        value={folder.name}
+                        onSelect={() => toggleFolder(folder.id)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedFolderIds.includes(folder.id) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <FolderIcon className="mr-2 h-4 w-4" />
+                        {folder.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            
+            <Button 
+              size="sm"
+              onClick={handleSaveFolders}
+              disabled={isSavingFolders}
+            >
+              {isSavingFolders ? 'Saving...' : 'Save Folder Selection'}
+            </Button>
+          </div>
+        </div>
         
         <div className="mt-6 flex justify-end gap-2">
           <Button

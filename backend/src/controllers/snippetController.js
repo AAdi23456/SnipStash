@@ -1,4 +1,4 @@
-const { Snippet, Tag, SnippetTag, UsageLog } = require('../models');
+const { Snippet, Tag, SnippetTag, UsageLog, Folder, SnippetFolder } = require('../models');
 const { autoTagCode } = require('../utils/autoTagger');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
@@ -71,9 +71,9 @@ const createSnippet = async (req, res) => {
  */
 const getSnippets = async (req, res) => {
   try {
-    const { language, tag, tags, query, sortBy } = req.query;
+    const { language, tag, tags, query, sortBy, folderId } = req.query;
     console.log('Request Query Params:', req.query);
-    console.log('Filters - language:', language, 'tag:', tag, 'tags:', tags, 'query:', query, 'sortBy:', sortBy);
+    console.log('Filters - language:', language, 'tag:', tag, 'tags:', tags, 'query:', query, 'sortBy:', sortBy, 'folderId:', folderId);
     console.log('User ID:', req.user?.id);
     
     // Check if user has any snippets at all first
@@ -89,8 +89,10 @@ const getSnippets = async (req, res) => {
     // Apply language filter if provided
     if (language) {
       console.log('Filtering by language:', language);
-      // Use exact match but case-insensitive
-      whereClause.language = { [Op.iLike]: language };
+      // If language is 'all', don't filter by language
+      if (language !== 'all') {
+        whereClause.language = { [Op.iLike]: language };
+      }
     }
     
     // Apply search query if provided (search in title, code, and description)
@@ -122,6 +124,20 @@ const getSnippets = async (req, res) => {
     } else {
       includeClause.push({
         model: Tag,
+        through: { attributes: [] }
+      });
+    }
+
+    // Setup folder inclusion and filter if provided
+    if (folderId) {
+      includeClause.push({
+        model: Folder,
+        where: { id: folderId },
+        through: { attributes: [] }
+      });
+    } else {
+      includeClause.push({
+        model: Folder,
         through: { attributes: [] }
       });
     }
@@ -165,7 +181,10 @@ const getSnippetById = async (req, res) => {
         id: req.params.id,
         userId: req.user.id
       },
-      include: [{ model: Tag }]
+      include: [
+        { model: Tag },
+        { model: Folder }
+      ]
     });
     
     if (!snippet) {
@@ -188,7 +207,7 @@ const updateSnippet = async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
-    const { title, code, language, description, tags = [] } = req.body;
+    const { title, code, language, description, tags = [], folderIds = [] } = req.body;
     
     // Check if the snippet exists and belongs to the user
     const snippet = await Snippet.findOne({
@@ -239,11 +258,47 @@ const updateSnippet = async (req, res) => {
     );
     
     await Promise.all(snippetTagPromises);
+
+    // If folderIds are provided, update folder associations
+    if (folderIds.length > 0) {
+      // Remove existing folder associations
+      await SnippetFolder.destroy({
+        where: { snippetId: snippet.id },
+        transaction
+      });
+      
+      // Verify all folders exist and belong to the user
+      const folders = await Folder.findAll({
+        where: {
+          id: { [Op.in]: folderIds },
+          userId: req.user.id
+        }
+      });
+      
+      if (folders.length !== folderIds.length) {
+        await transaction.rollback();
+        return res.status(404).json({ message: 'One or more folders not found' });
+      }
+      
+      // Create new folder associations
+      const snippetFolderPromises = folderIds.map(folderId => 
+        SnippetFolder.create({
+          snippetId: snippet.id,
+          folderId
+        }, { transaction })
+      );
+      
+      await Promise.all(snippetFolderPromises);
+    }
+    
     await transaction.commit();
     
-    // Return the updated snippet with its tags
+    // Return the updated snippet with its tags and folders
     const updatedSnippet = await Snippet.findByPk(snippet.id, {
-      include: [{ model: Tag }]
+      include: [
+        { model: Tag },
+        { model: Folder }
+      ]
     });
     
     res.json(updatedSnippet);
@@ -329,7 +384,8 @@ const copySnippet = async (req, res) => {
       where: {
         id: req.params.id,
         userId: req.user.id
-      }
+      },
+      include: [{ model: Tag }]
     });
     
     if (!snippet) {
@@ -337,9 +393,12 @@ const copySnippet = async (req, res) => {
     }
     
     // Increment copyCount and update lastCopiedAt
+    const newCopyCount = snippet.copyCount + 1;
+    const newLastCopiedAt = new Date();
+    
     await snippet.update({
-      copyCount: snippet.copyCount + 1,
-      lastCopiedAt: new Date()
+      copyCount: newCopyCount,
+      lastCopiedAt: newLastCopiedAt
     });
     
     // Also log the usage
@@ -349,11 +408,13 @@ const copySnippet = async (req, res) => {
       action: 'copy'
     });
     
-    res.status(200).json({ 
-      message: 'Snippet copied successfully',
-      copyCount: snippet.copyCount + 1,
-      lastCopiedAt: new Date()
+    // Get the updated snippet with all relations
+    const updatedSnippet = await Snippet.findByPk(snippet.id, {
+      include: [{ model: Tag }]
     });
+    
+    // Return the full updated snippet
+    res.status(200).json(updatedSnippet);
   } catch (error) {
     console.error('Error copying snippet:', error);
     res.status(500).json({ message: 'Server error while copying snippet' });

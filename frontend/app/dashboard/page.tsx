@@ -1,47 +1,36 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../src/components/ui/button';
-import { showInfoToast, toastSnippetCopied } from '../../lib/toast-utils';
-import CreateSnippet from './create-snippet';
-import SnippetDetail from './snippet-detail';
-import FilterBar, { FilterOptions } from './filter-bar';
+import { showInfoToast } from '../../lib/toast-utils';
+import FolderList from './folder-list';
+import { 
+  LayoutDashboard, 
+  LogOut, 
+  User, 
+  ArrowRight,
+  Folder,
+  FolderPlus,
+  Settings,
+  Code
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../src/components/ui/card';
 
-// Define types matching our backend
-interface Tag {
+interface Folder {
   id: number;
   name: string;
-}
-
-interface Snippet {
-  id: number;
-  title: string;
-  code: string;
-  language: string;
-  description: string;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
-  Tags: Tag[];
-  copyCount: number;
-  lastCopiedAt: string | null;
 }
 
 export default function DashboardPage() {
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [snippets, setSnippets] = useState<Snippet[]>([]);
-  const [isLoadingSnippets, setIsLoadingSnippets] = useState(false);
-  const [sortBy, setSortBy] = useState<string>(searchParams.get('sort') || 'newest');
-  const [filters, setFilters] = useState<FilterOptions>({
-    query: searchParams.get('query') || '',
-    language: searchParams.get('language') || '',
-    tags: searchParams.get('tags') ? searchParams.get('tags')!.split(',') : []
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [folderStats, setFolderStats] = useState({
+    total: 0,
+    recent: 0
   });
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -53,241 +42,263 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && isAuthenticated) {
       showInfoToast(`Welcome back, ${user.name}!`);
-      console.log('Auth token:', user.token ? `${user.token.substring(0, 15)}...` : 'No token');
-      fetchSnippets();
-      fetchAvailableTags();
     }
   }, [user, isAuthenticated]);
 
-  // Refetch snippets when sort option or filters change
-  useEffect(() => {
-    if (user && isAuthenticated) {
-      fetchSnippets();
-      updateUrlParams();
-    }
-  }, [sortBy, filters, user, isAuthenticated]);
-
-  // Update URL parameters based on current filters
-  const updateUrlParams = () => {
-    const params = new URLSearchParams();
-    
-    if (sortBy !== 'newest') {
-      params.set('sort', sortBy);
-    }
-    
-    if (filters.query) {
-      params.set('query', filters.query);
-    }
-    
-    if (filters.language) {
-      params.set('language', filters.language);
-    }
-    
-    if (filters.tags.length > 0) {
-      params.set('tags', filters.tags.join(','));
-    }
-    
-    const paramsString = params.toString();
-    const url = paramsString ? `?${paramsString}` : '';
-    
-    // Replace the current URL with the new parameters
-    window.history.replaceState(null, '', `${window.location.pathname}${url}`);
+  const handleFolderSelect = (folderId: number | null) => {
+    setSelectedFolderId(folderId);
   };
-
-  // Fetch all available tags for the filter dropdown
-  const fetchAvailableTags = async () => {
-    if (!user) return;
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/tags', {
-        headers: {
-          'Authorization': `Bearer ${user.token}`
-        }
-      });
-      
-      if (response.ok) {
-        const tags = await response.json();
-        setAvailableTags(tags.map((tag: { name: string }) => tag.name));
-      }
-    } catch (error) {
-      console.error('Error fetching tags:', error);
-    }
+  
+  const handleFoldersChanged = () => {
+    // Could update folder stats here if needed
   };
-
-  const fetchSnippets = async () => {
-    if (!user) return;
-    
-    setIsLoadingSnippets(true);
-    try {
-      // Build URL with query parameters
-      let url = new URL('http://localhost:5000/api/snippets');
-      
-      console.log('Building API request with filters:', filters);
-      
-      // Add sorting parameter
-      if (sortBy === 'most-used') {
-        url.searchParams.append('sortBy', 'most-used');
-      } else if (sortBy === 'recently-used') {
-        url.searchParams.append('sortBy', 'recently-used');
-      }
-      
-      // Add filter parameters
-      if (filters.language) {
-        url.searchParams.append('language', filters.language);
-      }
-      
-      if (filters.query) {
-        url.searchParams.append('query', filters.query);
-      }
-      
-      if (filters.tags.length > 0) {
-        url.searchParams.append('tags', filters.tags.join(','));
-      }
-      
-      const finalUrl = url.toString();
-      console.log('Final API URL:', finalUrl);
-      
-      const response = await fetch(finalUrl, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('API response data count:', data.length);
-        setSnippets(data);
-      } else {
-        console.error('API error response:', response.status, await response.text());
-      }
-    } catch (error) {
-      console.error('Error fetching snippets:', error);
-    } finally {
-      setIsLoadingSnippets(false);
-    }
-  };
-
-  const handleDeleteSnippet = (id: number) => {
-    setSnippets(snippets.filter(snippet => snippet.id !== id));
-  };
-
-  const handleSortChange = (newSortBy: string) => {
-    setSortBy(newSortBy);
-  };
-
-  const handleFilterChange = (newFilters: FilterOptions) => {
-    setFilters(newFilters);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null; // Will redirect via useEffect
-  }
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  // Demo function to simulate copying a snippet
-  const handleCopyDemo = () => {
-    // In a real app, this would copy text to clipboard
-    toastSnippetCopied();
-  };
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="text-lg text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Will redirect via useEffect
+  if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Welcome, {user?.name}</h1>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
-        </div>
-        
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <h2 className="text-2xl font-semibold">My Snippets</h2>
-              <div className="flex space-x-2 items-center">
-                <div className="flex space-x-1">
-                  <Button 
-                    size="sm" 
-                    variant={sortBy === 'newest' ? 'default' : 'outline'} 
-                    onClick={() => handleSortChange('newest')}
-                  >
-                    Newest
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={sortBy === 'most-used' ? 'default' : 'outline'} 
-                    onClick={() => handleSortChange('most-used')}
-                  >
-                    Most Used
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={sortBy === 'recently-used' ? 'default' : 'outline'} 
-                    onClick={() => handleSortChange('recently-used')}
-                  >
-                    Recently Copied
-                  </Button>
-                </div>
-                <CreateSnippet onSnippetCreated={() => {
-                  fetchSnippets();
-                  fetchAvailableTags();
-                }} />
-              </div>
-            </div>
-            
-            {/* Filter Bar */}
-            <FilterBar 
-              onFilterChange={handleFilterChange} 
-              availableTags={availableTags}
-              initialFilters={filters}
-            />
+    <div className="min-h-screen bg-background">
+      {/* Top navigation */}
+      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
+        <div className="flex h-16 items-center px-6">
+          <div className="flex items-center gap-2 font-semibold">
+            <LayoutDashboard className="h-6 w-6" />
+            <span className="text-xl">SnipStash</span>
           </div>
           
-          {isLoadingSnippets ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">Loading snippets...</p>
+          <div className="ml-auto flex items-center gap-4">
+            <Button variant="ghost" onClick={() => router.push('/snippets')} className="flex items-center gap-2">
+              <Code className="h-5 w-5" />
+              <span className="hidden md:inline">Snippets</span>
+            </Button>
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-medium text-primary">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </span>
             </div>
-          ) : snippets.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">
-                {(filters.query || filters.language || filters.tags.length > 0) 
-                  ? 'No snippets match your search criteria. Try adjusting your filters.'
-                  : 'You don\'t have any snippets yet. Create your first snippet to get started!'}
-              </p>
-              <div className="mt-4 flex justify-center space-x-3">
-                <Button variant="outline" onClick={handleCopyDemo}>
-                  Demo Copy Toast
-                </Button>
+            <div className="hidden md:block">
+              <div className="text-sm font-medium">{user?.name}</div>
+              <div className="text-xs text-muted-foreground">{user?.email}</div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+      
+      <div className="container mx-auto py-6 px-4 md:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Sidebar */}
+        <div className="md:col-span-1">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Folder Management</CardTitle>
+                <CardDescription>
+                  Organize and manage your content with folders
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pb-1">
+                <div className="h-[calc(100vh-240px)] overflow-y-auto pr-2">
+                  <FolderList 
+                    selectedFolderId={selectedFolderId}
+                    onFolderSelect={handleFolderSelect}
+                    onFoldersChanged={handleFoldersChanged}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Quick Stats</CardTitle>
+                <CardDescription>
+                  Overview of your organization
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pb-1">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <Folder className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-sm">Total Folders</span>
+                    </div>
+                    <span className="font-semibold">{folderStats.total}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <FolderPlus className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-sm">Recently Added</span>
+                    </div>
+                    <span className="font-semibold">{folderStats.recent}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        
+        {/* Main content */}
+        <div className="md:col-span-3">
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-2xl">Welcome, {user?.name}</CardTitle>
+                  <CardDescription className="mt-1">
+                    Manage your folders and stay organized
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => router.push('/snippets')}>
+                    <Code className="h-4 w-4 mr-2" />
+                    View Snippets
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => router.push('/settings')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-              {snippets.map((snippet) => (
-                <SnippetDetail 
-                  key={snippet.id} 
-                  snippet={snippet} 
-                  onDelete={handleDeleteSnippet}
-                />
-              ))}
-            </div>
-          )}
+            </CardHeader>
+          </Card>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Get Started</CardTitle>
+                <CardDescription>
+                  Quick actions to organize your content
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button variant="outline" className="w-full justify-between group" size="lg">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <FolderPlus className="h-5 w-5 text-primary" />
+                      </div>
+                      <span>Create New Folder</span>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-between group" 
+                    size="lg"
+                    onClick={() => router.push('/snippets')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <Code className="h-5 w-5 text-primary" />
+                      </div>
+                      <span>Manage Snippets</span>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Button>
+                  
+                  <Button variant="outline" className="w-full justify-between group" size="lg">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <span>Manage Account</span>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Helpful Tips</CardTitle>
+                <CardDescription>
+                  Make the most of your folder organization
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-3 bg-card/50">
+                    <h4 className="font-medium text-sm mb-1">Organize by Projects</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Group related content by creating project-specific folders.
+                    </p>
+                  </div>
+                  
+                  <div className="border rounded-lg p-3 bg-card/50">
+                    <h4 className="font-medium text-sm mb-1">Use Naming Conventions</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Create a consistent naming system for your folders to make finding content easier.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>
+                  Your latest actions and updates
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative pl-6 border-l space-y-4">
+                  <div className="relative">
+                    <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                    </div>
+                    <div className="mb-1 text-sm font-medium">New folder created</div>
+                    <div className="text-xs text-muted-foreground">Today, 10:30 AM</div>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                    </div>
+                    <div className="mb-1 text-sm font-medium">Folder renamed</div>
+                    <div className="text-xs text-muted-foreground">Yesterday, 2:15 PM</div>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-[28px] p-1 bg-background border rounded-full">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                    </div>
+                    <div className="mb-1 text-sm font-medium">Account updated</div>
+                    <div className="text-xs text-muted-foreground">2 days ago</div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button variant="ghost" size="sm" className="ml-auto">
+                  View all activity
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

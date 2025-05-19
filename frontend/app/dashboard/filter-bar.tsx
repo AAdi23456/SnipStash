@@ -87,14 +87,12 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
 
   // Handle language selection
   const handleLanguageChange = (value: string) => {
-    // If "all" is selected, treat it as empty string for the API
-    const languageValue = value === 'all' ? '' : value;
-    
+    // We want to send 'all' to the API
     setLanguage(value);
-    console.log('Language selected:', value, 'API value:', languageValue);
+    console.log('Language selected:', value);
     onFilterChange({
       query: searchQuery,
-      language: languageValue,
+      language: value,
       tags: selectedTags
     });
   };

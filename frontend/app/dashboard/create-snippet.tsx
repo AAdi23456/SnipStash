@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown, FolderIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "../../context/AuthContext";
 import { showSuccessToast, showErrorToast, toastSnippetCreated } from "../../lib/toast-utils";
 
@@ -46,6 +60,11 @@ const LANGUAGES = [
   { value: 'bash', label: 'Bash/Shell' },
 ];
 
+interface Folder {
+  id: number;
+  name: string;
+}
+
 export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?: () => void }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,7 +73,34 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
   const [language, setLanguage] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>([]);
+  const [foldersOpen, setFoldersOpen] = useState(false);
   const { user } = useAuth();
+
+  // Fetch folders when the dialog opens
+  useEffect(() => {
+    if (open && user) {
+      fetchFolders();
+    }
+  }, [open, user]);
+
+  const fetchFolders = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/folders', {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+      }
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+    }
+  };
 
   const resetForm = () => {
     setTitle('');
@@ -62,6 +108,7 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
     setLanguage('');
     setDescription('');
     setTags('');
+    setSelectedFolderIds([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,6 +128,7 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
       
+      // First create the snippet
       const response = await fetch('http://localhost:5000/api/snippets', {
         method: 'POST',
         headers: {
@@ -101,6 +149,26 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
         throw new Error(data.message || 'Failed to create snippet');
       }
       
+      const createdSnippet = await response.json();
+      
+      // If folders are selected, assign the snippet to those folders
+      if (selectedFolderIds.length > 0) {
+        const folderResponse = await fetch(`http://localhost:5000/api/snippets/${createdSnippet.id}/folders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user?.token}`
+          },
+          body: JSON.stringify({
+            folderIds: selectedFolderIds
+          })
+        });
+        
+        if (!folderResponse.ok) {
+          console.error('Error assigning snippet to folders');
+        }
+      }
+      
       // Success!
       toastSnippetCreated();
       resetForm();
@@ -116,6 +184,14 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const toggleFolder = (folderId: number) => {
+    setSelectedFolderIds(current => 
+      current.includes(folderId)
+        ? current.filter(id => id !== folderId)
+        : [...current, folderId]
+    );
   };
 
   return (
@@ -192,6 +268,54 @@ export default function CreateSnippet({ onSnippetCreated }: { onSnippetCreated?:
             <p className="text-xs text-muted-foreground">
               Additional tags will be auto-generated based on code content
             </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Folders</Label>
+            <Popover open={foldersOpen} onOpenChange={setFoldersOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={foldersOpen}
+                  className="w-full justify-between"
+                >
+                  {selectedFolderIds.length > 0
+                    ? `${selectedFolderIds.length} folder${selectedFolderIds.length !== 1 ? 's' : ''} selected`
+                    : "Select folders"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search folders..." />
+                  <CommandEmpty>No folders found</CommandEmpty>
+                  <CommandGroup>
+                    {folders.map((folder) => (
+                      <CommandItem
+                        key={folder.id}
+                        value={folder.name}
+                        onSelect={() => toggleFolder(folder.id)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedFolderIds.includes(folder.id) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <FolderIcon className="mr-2 h-4 w-4" />
+                        {folder.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {folders.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No folders available. Create folders to organize your snippets.
+              </p>
+            )}
           </div>
           
           <DialogFooter className="pt-4">
