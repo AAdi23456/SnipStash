@@ -524,7 +524,7 @@ function SnippetsPageContent() {
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" side="bottom" position="popper" className="w-48">
                 <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
