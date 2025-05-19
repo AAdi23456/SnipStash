@@ -38,6 +38,30 @@ const LANGUAGE_OPTIONS = [
   { value: 'bash', label: 'Bash/Shell' }
 ];
 
+// All possible auto-tag options from autoTagger.js
+const AUTO_TAG_OPTIONS = [
+  'loop',
+  'API',
+  'error handling',
+  'array ops',
+  'debugging',
+  'async',
+  'DOM',
+  'react',
+  'condition',
+  'function',
+  'timing',
+  'OOP',
+  'module',
+  'MongoDB',
+  'Express',
+  'SQL',
+  'auth',
+  'security',
+  'AI',
+  'Machine Learning'
+];
+
 interface FilterBarProps {
   onFilterChange: (filters: FilterOptions) => void;
   availableTags: string[];
@@ -55,6 +79,14 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
   const [language, setLanguage] = useState(initialFilters?.language ? initialFilters.language : 'all');
   const [selectedTags, setSelectedTags] = useState<string[]>(initialFilters?.tags || []);
   const [activeTag, setActiveTag] = useState('');
+  // Combine available tags with auto tag options
+  const [allAvailableTags, setAllAvailableTags] = useState<string[]>([]);
+
+  // Combine user's existing tags with auto-tag options
+  useEffect(() => {
+    const combinedTags = [...new Set([...availableTags, ...AUTO_TAG_OPTIONS])];
+    setAllAvailableTags(combinedTags.sort());
+  }, [availableTags]);
 
   // Apply initial filters if they change externally
   useEffect(() => {
@@ -173,7 +205,7 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
               <SelectValue placeholder="Select Tag" />
             </SelectTrigger>
             <SelectContent>
-              {availableTags
+              {allAvailableTags
                 .filter(tag => !selectedTags.includes(tag) && tag !== null && tag !== undefined)
                 .map((tag) => (
                   <SelectItem key={tag} value={String(tag)}>
@@ -198,17 +230,16 @@ export default function FilterBar({ onFilterChange, availableTags, initialFilter
           )}
         </div>
       </div>
-      
-      {/* Active filters display */}
+
+      {/* Selected tag badges */}
       {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selectedTags.map(tag => (
-            <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+        <div className="flex flex-wrap gap-2 mt-2">
+          {selectedTags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="px-2 py-1">
               {tag}
-              <X 
-                size={14} 
-                className="cursor-pointer" 
-                onClick={() => handleRemoveTag(tag)} 
+              <X
+                className="ml-1 h-3 w-3 cursor-pointer"
+                onClick={() => handleRemoveTag(tag)}
               />
             </Badge>
           ))}
