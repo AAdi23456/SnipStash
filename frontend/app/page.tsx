@@ -94,14 +94,15 @@ export default function Home() {
             <Card className="border-2 transition-all duration-300 hover:border-primary/50 hover:shadow-lg">
               <CardHeader className="pb-2">
                 <FolderTree className="h-10 w-10 mb-2 text-primary" />
-                <CardTitle className="text-2xl">Smart Categories</CardTitle>
+                <CardTitle className="text-2xl">Customised Categories</CardTitle>
                 <CardDescription>
-                  Automatic categorization of your code snippets
+                Customised categorization of your code snippets
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Our AI-powered system can detect patterns in your code and organize them into logical categories.
+                Organize your code snippets into custom folders for easier access and better structure.
+
                 </p>
               </CardContent>
             </Card>
