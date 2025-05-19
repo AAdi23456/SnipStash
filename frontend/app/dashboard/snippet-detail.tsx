@@ -23,10 +23,17 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, FolderIcon } from "lucide-react";
+import { Check, ChevronsUpDown, FolderIcon, ClipboardCopy, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../../context/AuthContext";
 import { toastSnippetCopied, toastSnippetDeleted, showSuccessToast, showErrorToast } from "../../lib/toast-utils";
+import dynamic from 'next/dynamic';
+
+// Dynamically import the code editor component with no SSR
+const SyntaxHighlightedCodeEditor = dynamic(
+  () => import('../../src/components/ui/code-editor').then((mod) => mod.SyntaxHighlightedCodeEditor),
+  { ssr: false }
+);
 
 interface Tag {
   id: number;
@@ -67,23 +74,26 @@ export default function SnippetDetail({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>([]);
+  const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>(
+    initialSnippet.Folders?.map(f => f.id) || []
+  );
   const [isLoadingFolders, setIsLoadingFolders] = useState(false);
   const [isSavingFolders, setIsSavingFolders] = useState(false);
   const [foldersOpen, setFoldersOpen] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const { user } = useAuth();
 
-  // Fetch folders when dialog opens
+  // Load folders when the dialog is opened
   useEffect(() => {
-    if (open && user) {
+    if (open) {
       fetchFolders();
-      
-      // Initialize selected folder IDs from snippet
-      if (snippet.Folders) {
-        setSelectedFolderIds(snippet.Folders.map(folder => folder.id));
-      }
     }
-  }, [open, user, snippet.Folders]);
+  }, [open]);
+
+  // Set client ready state for the code editor
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const fetchFolders = async () => {
     setIsLoadingFolders(true);
@@ -112,7 +122,7 @@ export default function SnippetDetail({
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -121,56 +131,41 @@ export default function SnippetDetail({
 
   // Copy snippet code to clipboard
   const handleCopyCode = async () => {
-    if (isCopying) return;
-    
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(snippet.code);
       toastSnippetCopied();
       
-      // Call the dedicated copy endpoint
-      try {
-        const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/copy`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user?.token}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          // Create updated snippet
-          const updatedSnippet = {
-            ...snippet,
-            copyCount: data.copyCount,
-            lastCopiedAt: data.lastCopiedAt
-          };
-          
-          // Update local state
-          setSnippet(updatedSnippet);
-          
-          // Notify parent component if callback exists
-          if (onSnippetUpdate) {
-            onSnippetUpdate(updatedSnippet);
-          }
+      // Update the copy count on the server
+      const response = await fetch(`http://localhost:5000/api/snippets/${snippet.id}/copy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
         }
-      } catch (err) {
-        console.error('Could not log copy operation', err);
+      });
+      
+      if (response.ok) {
+        const updatedSnippet = await response.json();
+        setSnippet(updatedSnippet);
+        
+        // Update the snippet in the parent component if provided
+        if (onSnippetUpdate) {
+          onSnippetUpdate(updatedSnippet);
+        }
       }
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+    } catch (error) {
+      console.error('Error copying snippet:', error);
+      showErrorToast('Failed to copy snippet to clipboard');
     } finally {
-      // Add a small delay before enabling the button again
-      setTimeout(() => {
-        setIsCopying(false);
-      }, 500);
+      setIsCopying(false);
     }
   };
 
   // Delete the snippet
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this snippet?')) return;
+    if (!confirm('Are you sure you want to delete this snippet? This action cannot be undone.')) {
+      return;
+    }
     
     setIsDeleting(true);
     try {
@@ -184,6 +179,8 @@ export default function SnippetDetail({
       if (response.ok) {
         toastSnippetDeleted();
         setOpen(false);
+        
+        // Call the onDelete handler if provided
         if (onDelete) {
           onDelete(snippet.id);
         }
@@ -192,6 +189,7 @@ export default function SnippetDetail({
       }
     } catch (error) {
       console.error('Error deleting snippet:', error);
+      showErrorToast('Failed to delete snippet');
     } finally {
       setIsDeleting(false);
     }
@@ -303,13 +301,27 @@ export default function SnippetDetail({
               variant="outline" 
               onClick={handleCopyCode}
               disabled={isCopying}
+              className="flex items-center gap-1"
             >
+              <ClipboardCopy className="h-3.5 w-3.5" />
               {isCopying ? 'Copying...' : 'Copy Code'}
             </Button>
           </div>
-          <pre className="bg-card border border-border rounded-md p-4 overflow-x-auto font-mono text-sm whitespace-pre">
-            {snippet.code}
-          </pre>
+          {clientReady ? (
+            <div className="rounded-md overflow-hidden">
+              <SyntaxHighlightedCodeEditor
+                value={snippet.code}
+                language={snippet.language}
+                onChange={() => {}} // Read-only mode
+                className="w-full"
+                minHeight="auto"
+              />
+            </div>
+          ) : (
+            <pre className="bg-card border border-border rounded-md p-4 overflow-x-auto font-mono text-sm whitespace-pre">
+              {snippet.code}
+            </pre>
+          )}
         </div>
         
         {snippet.Tags?.length > 0 && (
@@ -387,7 +399,9 @@ export default function SnippetDetail({
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting}
+            className="flex items-center gap-1"
           >
+            <Trash className="h-3.5 w-3.5" />
             {isDeleting ? 'Deleting...' : 'Delete Snippet'}
           </Button>
         </div>

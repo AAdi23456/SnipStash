@@ -6,8 +6,15 @@ import { useAuth } from '../../../context/AuthContext';
 import { Button } from '../../../src/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../../src/components/ui/card';
 import { Badge } from '../../../src/components/ui/badge';
-import { showInfoToast, toastSnippetCopied, showErrorToast } from '../../../lib/toast-utils';
+import { toastSnippetCopied, showErrorToast } from '../../../lib/toast-utils';
 import { ArrowLeft, Edit, Copy, Folder, Clock } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the code editor component with no SSR
+const SyntaxHighlightedCodeEditor = dynamic(
+  () => import('../../../src/components/ui/code-editor').then((mod) => mod.SyntaxHighlightedCodeEditor),
+  { ssr: false }
+);
 
 interface Tag {
   id: number;
@@ -34,12 +41,17 @@ interface Snippet {
   lastCopiedAt: string | null;
 }
 
-export default function SnippetDetailPage({ params }: { params: { id: string } }) {
+interface PageParams {
+  id: string;
+}
+
+export default function SnippetDetailPage({ params }: { params: PageParams }) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [snippet, setSnippet] = useState<Snippet | null>(null);
   const [isCopying, setIsCopying] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   
   // Snippet ID from the URL
   const snippetId = params.id;
@@ -57,6 +69,11 @@ export default function SnippetDetailPage({ params }: { params: { id: string } }
       fetchSnippet();
     }
   }, [user, isAuthenticated, snippetId]);
+
+  // Set client ready state for the code editor
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
   
   const fetchSnippet = async () => {
     setIsLoading(true);
@@ -174,9 +191,21 @@ export default function SnippetDetailPage({ params }: { params: { id: string } }
             </CardHeader>
             
             <CardContent className="space-y-4">
-              <div className="bg-muted rounded-md p-4 font-mono text-sm overflow-auto whitespace-pre-wrap">
-                {snippet.code}
-              </div>
+              {clientReady && snippet ? (
+                <div className="rounded-md overflow-hidden">
+                  <SyntaxHighlightedCodeEditor
+                    value={snippet.code}
+                    language={snippet.language}
+                    onChange={() => {}} // Read-only mode
+                    className="w-full"
+                    minHeight="auto"
+                  />
+                </div>
+              ) : (
+                <div className="bg-muted rounded-md p-4 font-mono text-sm overflow-auto whitespace-pre-wrap">
+                  {snippet?.code}
+                </div>
+              )}
               
               {snippet.description && (
                 <div className="space-y-1">

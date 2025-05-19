@@ -38,7 +38,11 @@ interface Snippet {
   lastCopiedAt: string | null;
 }
 
-export default function EditSnippetPage({ params }: { params: { id: string } }) {
+interface PageParams {
+  id: string;
+}
+
+export default function EditSnippetPage({ params }: { params: PageParams }) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isContentLoading, setIsContentLoading] = useState(true);
