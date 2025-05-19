@@ -314,15 +314,15 @@ export default function SnippetsPage() {
             s.id === selectedSnippet.id ? updatedSnippet : s
           )
         );
-        showSuccessToast('Folder assignments updated successfully');
+        showSuccessToast('Folders assigned successfully');
         setShowFolderDialog(false);
       } else {
         const error = await response.json();
-        showErrorToast(error.message || 'Failed to update folder assignments');
+        showErrorToast(error.message || 'Failed to assign folders');
       }
     } catch (error) {
-      console.error('Error updating folder assignments:', error);
-      showErrorToast('Error updating folder assignments');
+      console.error('Error assigning folders:', error);
+      showErrorToast('Error assigning folders');
     } finally {
       setIsSubmittingFolders(false);
     }
@@ -473,7 +473,7 @@ export default function SnippetsPage() {
                       className="flex items-center gap-1"
                     >
                       <Folder className="h-4 w-4" />
-                      Assign to Folders
+                      Manage Folders
                     </Button>
                     <Button 
                       onClick={() => handleCopyCode(snippet)}
@@ -496,10 +496,10 @@ export default function SnippetsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Folder className="h-5 w-5" />
-              Assign to Folders
+              Assign to Additional Folders
             </DialogTitle>
             <DialogDescription>
-              Select the folders you want to assign this snippet to.
+              Select folders to add this snippet to. Snippets remain in previously assigned folders.
             </DialogDescription>
           </DialogHeader>
           

@@ -227,21 +227,30 @@ const addSnippetToFolders = async (req, res) => {
       return res.status(404).json({ message: 'One or more folders not found' });
     }
     
-    // Remove existing folder associations
-    await SnippetFolder.destroy({
+    // Get existing folder associations for this snippet
+    const existingAssociations = await SnippetFolder.findAll({
       where: { snippetId },
+      attributes: ['folderId'],
       transaction
     });
     
-    // Create new associations
-    const snippetFolderPromises = folderIds.map(folderId => 
-      SnippetFolder.create({
-        snippetId,
-        folderId
-      }, { transaction })
-    );
+    const existingFolderIds = existingAssociations.map(assoc => assoc.folderId);
     
-    await Promise.all(snippetFolderPromises);
+    // Filter out folders that are already associated with the snippet
+    const newFolderIds = folderIds.filter(id => !existingFolderIds.includes(id));
+    
+    // Create new associations only for folders that don't already have an association
+    if (newFolderIds.length > 0) {
+      const snippetFolderPromises = newFolderIds.map(folderId => 
+        SnippetFolder.create({
+          snippetId,
+          folderId
+        }, { transaction })
+      );
+      
+      await Promise.all(snippetFolderPromises);
+    }
+    
     await transaction.commit();
     
     // Return the snippet with its updated folders
