@@ -58,6 +58,42 @@ module.exports = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "30%": { opacity: "1" },
+          "90%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
+        "fade-in-up": {
+          "0%": { 
+            opacity: "0",
+            transform: "translateY(20px)" 
+          },
+          "30%": { 
+            opacity: "1",
+            transform: "translateY(0)" 
+          },
+          "90%": { 
+            opacity: "1",
+            transform: "translateY(0)" 
+          },
+          "100%": { 
+            opacity: "0",
+            transform: "translateY(20px)" 
+          },
+        },
+        "pulse-opacity": {
+          "0%": { opacity: "0" },
+          "50%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        }
+      },
+      animation: {
+        "fade-in": "fade-in 4s ease-in-out infinite",
+        "fade-in-up": "fade-in-up 4s ease-in-out infinite",
+        "pulse-opacity": "pulse-opacity 4s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
