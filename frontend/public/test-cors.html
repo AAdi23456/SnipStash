@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnipStash API CORS Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #1a1a1a;
+      color: #e1e1e1;
+    }
+    h1, h2 {
+      color: #4CAF50;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      background-color: #2a2a2a;
+      color: #e1e1e1;
+      border: 1px solid #444;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 20px;
+      border: 1px solid #444;
+      padding: 10px;
+      background-color: #2a2a2a;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: #4CAF50;
+    }
+    .error {
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <h1>SnipStash API CORS Test</h1>
+  
+  <div class="form-group">
+    <label for="token">JWT Token:</label>
+    <input type="text" id="token" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYWRpamhhMTJAZ21haWwuY29tIiwiaWF0IjoxNzQ3NjU3NzM3LCJleHAiOjE3NTAyNDk3Mzd9.SOP9UfsP4oneQFteBKc2ze6spV9n6_P--yvxL33NfN4">
+  </div>
+  
+  <div class="actions">
+    <button id="getSnippets">Get Snippets</button>
+    <button id="createSnippet">Create Test Snippet</button>
+  </div>
+  
+  <h2>Response:</h2>
+  <div id="response">No response yet</div>
+  
+  <script>
+    document.getElementById('getSnippets').addEventListener('click', async function() {
+      const token = document.getElementById('token').value;
+      const responseElement = document.getElementById('response');
+      
+      responseElement.textContent = 'Fetching snippets...';
+      responseElement.className = '';
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/snippets', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          mode: 'cors'
+        });
+        
+        const responseText = await response.text();
+        
+        let formattedResponse = `Status: ${response.status}\n\n`;
+        
+        try {
+          // Try to parse as JSON for prettier display
+          const jsonResponse = JSON.parse(responseText);
+          formattedResponse += `Found ${jsonResponse.length} snippets\n\n`;
+          formattedResponse += JSON.stringify(jsonResponse.slice(0, 2), null, 2);
+          if (jsonResponse.length > 2) {
+            formattedResponse += `\n\n...and ${jsonResponse.length - 2} more`;
+          }
+          responseElement.className = 'success';
+        } catch (e) {
+          // If not JSON, just show the raw text
+          formattedResponse += responseText;
+          responseElement.className = 'error';
+        }
+        
+        responseElement.textContent = formattedResponse;
+      } catch (error) {
+        responseElement.textContent = `Error: ${error.message}`;
+        responseElement.className = 'error';
+      }
+    });
+    
+    document.getElementById('createSnippet').addEventListener('click', async function() {
+      const token = document.getElementById('token').value;
+      const responseElement = document.getElementById('response');
+      
+      responseElement.textContent = 'Creating snippet...';
+      responseElement.className = '';
+      
+      try {
+        const testData = {
+          title: 'CORS Test ' + new Date().toLocaleTimeString(),
+          code: 'console.log("Testing CORS from browser");',
+          language: 'javascript',
+          description: 'This is a test snippet created from the browser',
+          tags: ['test', 'cors', 'browser']
+        };
+        
+        const response = await fetch('http://localhost:5000/api/snippets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(testData),
+          mode: 'cors'
+        });
+        
+        const responseText = await response.text();
+        
+        let formattedResponse = `Status: ${response.status}\n\n`;
+        
+        try {
+          // Try to parse as JSON for prettier display
+          const jsonResponse = JSON.parse(responseText);
+          formattedResponse += `Snippet created with ID: ${jsonResponse.id}\n\n`;
+          formattedResponse += JSON.stringify(jsonResponse, null, 2);
+          responseElement.className = 'success';
+        } catch (e) {
+          // If not JSON, just show the raw text
+          formattedResponse += responseText;
+          responseElement.className = 'error';
+        }
+        
+        responseElement.textContent = formattedResponse;
+      } catch (error) {
+        responseElement.textContent = `Error: ${error.message}`;
+        responseElement.className = 'error';
+      }
+    });
+  </script>
+</body>
+</html> 

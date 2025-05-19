@@ -6,6 +6,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { Button } from '../../../../src/components/ui/button';
 import { Input } from '../../../../src/components/ui/input';
 import { Textarea } from '../../../../src/components/ui/textarea';
+import { SyntaxHighlightedCodeEditor } from '../../../../src/components/ui/code-editor';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../../../src/components/ui/card';
 import { Label } from '../../../../src/components/ui/label';
 import { showSuccessToast, showErrorToast } from '../../../../lib/toast-utils';
@@ -210,13 +211,14 @@ export default function EditSnippetPage({ params }: { params: { id: string } }) 
                 
                 <div className="space-y-2">
                   <Label htmlFor="code">Code</Label>
-                  <Textarea 
+                  <SyntaxHighlightedCodeEditor 
                     id="code" 
                     value={code} 
-                    onChange={(e) => setCode(e.target.value)} 
+                    language={language || 'plaintext'}
+                    onChange={setCode}
                     placeholder="Enter your code snippet here"
-                    className="font-mono min-h-[200px]"
-                    required
+                    minHeight="200px"
+                    className="w-full"
                   />
                 </div>
                 

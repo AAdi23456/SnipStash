@@ -13,8 +13,33 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Debug middleware for logging requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  if (req.body && Object.keys(req.body).length) {
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+  }
+  
+  // Capture and log the response
+  const originalSend = res.send;
+  res.send = function(body) {
+    console.log(`[${new Date().toISOString()}] Response status: ${res.statusCode}`);
+    if (body) {
+      console.log('Response body:', typeof body === 'string' ? body.substring(0, 200) + (body.length > 200 ? '...' : '') : body);
+    }
+    return originalSend.apply(res, arguments);
+  };
+  
+  next();
+});
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // API Routes

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnipStash API Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>SnipStash API Test</h1>
+  
+  <div class="form-group">
+    <label for="token">JWT Token:</label>
+    <input type="text" id="token" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYWRpamhhMTJAZ21haWwuY29tIiwiaWF0IjoxNzQ3NjU3NzM3LCJleHAiOjE3NTAyNDk3Mzd9.SOP9UfsP4oneQFteBKc2ze6spV9n6_P--yvxL33NfN4">
+  </div>
+  
+  <form id="snippetForm">
+    <div class="form-group">
+      <label for="title">Title:</label>
+      <input type="text" id="title" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="code">Code:</label>
+      <textarea id="code" rows="6" required></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="language">Language:</label>
+      <select id="language" required>
+        <option value="javascript">JavaScript</option>
+        <option value="typescript">TypeScript</option>
+        <option value="html">HTML</option>
+        <option value="css">CSS</option>
+        <option value="python">Python</option>
+        <option value="java">Java</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="description">Description:</label>
+      <textarea id="description" rows="3"></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="tags">Tags (comma-separated):</label>
+      <input type="text" id="tags" placeholder="e.g. react, hooks, state-management">
+    </div>
+    
+    <button type="submit">Create Snippet</button>
+  </form>
+  
+  <h2>Response:</h2>
+  <div id="response">No response yet</div>
+  
+  <script>
+    document.getElementById('snippetForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const token = document.getElementById('token').value;
+      const title = document.getElementById('title').value;
+      const code = document.getElementById('code').value;
+      const language = document.getElementById('language').value;
+      const description = document.getElementById('description').value;
+      const tags = document.getElementById('tags').value
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+      
+      const responseElement = document.getElementById('response');
+      responseElement.textContent = 'Sending request...';
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/snippets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title,
+            code,
+            language,
+            description,
+            tags
+          })
+        });
+        
+        const responseText = await response.text();
+        
+        let formattedResponse = `Status: ${response.status}\n\n`;
+        
+        try {
+          // Try to parse as JSON for prettier display
+          const jsonResponse = JSON.parse(responseText);
+          formattedResponse += JSON.stringify(jsonResponse, null, 2);
+        } catch (e) {
+          // If not JSON, just show the raw text
+          formattedResponse += responseText;
+        }
+        
+        responseElement.textContent = formattedResponse;
+      } catch (error) {
+        responseElement.textContent = `Error: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html> 

@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Button } from '../../../src/components/ui/button';
 import { Input } from '../../../src/components/ui/input';
 import { Textarea } from '../../../src/components/ui/textarea';
+import { SyntaxHighlightedCodeEditor } from '../../../src/components/ui/code-editor';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../../src/components/ui/card';
 import { Label } from '../../../src/components/ui/label';
 import { showSuccessToast, showErrorToast } from '../../../lib/toast-utils';
@@ -45,6 +46,15 @@ export default function CreateSnippetPage() {
     const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
     
     try {
+      console.log('Submitting snippet with token:', user?.token);
+      console.log('Request payload:', {
+        title,
+        code,
+        language,
+        description,
+        tags: tagArray
+      });
+
       const response = await fetch('http://localhost:5000/api/snippets', {
         method: 'POST',
         headers: {
@@ -60,16 +70,47 @@ export default function CreateSnippetPage() {
         })
       });
       
-      if (response.ok) {
-        showSuccessToast('Snippet created successfully');
-        router.push('/snippets');
-      } else {
-        const data = await response.json();
-        showErrorToast(data.message || 'Failed to create snippet');
+      // Log response status
+      console.log('Response status:', response.status);
+      
+      // Only try to get text if there's a response
+      let responseText = '';
+      try {
+        responseText = await response.text();
+        console.log('Response text:', responseText);
+      } catch (err) {
+        console.error('Error reading response:', err);
       }
-    } catch (error) {
+      
+      if (response.ok) {
+        try {
+          // Only try to parse if we have response text
+          const data = responseText ? JSON.parse(responseText) : {};
+          showSuccessToast('Snippet created successfully');
+          router.push('/snippets');
+        } catch (e) {
+          console.error('Error parsing successful response:', e);
+          showSuccessToast('Snippet created successfully, but response data could not be parsed');
+          router.push('/snippets');
+        }
+      } else {
+        let errorMessage = 'Failed to create snippet';
+        try {
+          if (responseText) {
+            // Try to parse the response as JSON
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+          }
+        } catch (e) {
+          // Response wasn't valid JSON
+          console.error('Error parsing error response:', e);
+          errorMessage = responseText || errorMessage;
+        }
+        showErrorToast(errorMessage);
+      }
+    } catch (error: any) {
       console.error('Error creating snippet:', error);
-      showErrorToast('Error creating snippet');
+      showErrorToast('Error creating snippet: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
@@ -136,13 +177,14 @@ export default function CreateSnippetPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="code">Code</Label>
-                <Textarea 
+                <SyntaxHighlightedCodeEditor 
                   id="code" 
                   value={code} 
-                  onChange={(e) => setCode(e.target.value)} 
+                  language={language || 'plaintext'}
+                  onChange={setCode}
                   placeholder="Enter your code snippet here"
-                  className="font-mono min-h-[200px]"
-                  required
+                  minHeight="200px"
+                  className="w-full"
                 />
               </div>
               
