@@ -450,10 +450,7 @@ export default function DashboardPage() {
                     <Code className="h-4 w-4 mr-2" />
                     View Snippets
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => router.push('/settings')}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Button>
+                 
                 </div>
               </div>
             </CardHeader>
@@ -470,15 +467,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <Button variant="outline" className="w-full justify-between group" size="lg">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-primary/10 p-2 rounded-full">
-                          <FolderPlus className="h-5 w-5 text-primary" />
-                        </div>
-                        <span>Create New Folder</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </Button>
+                    
                     
                     <Button 
                       variant="outline" 
@@ -510,15 +499,7 @@ export default function DashboardPage() {
                       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </Button>
                     
-                    <Button variant="outline" className="w-full justify-between group" size="lg">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-primary/10 p-2 rounded-full">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <span>Manage Account</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </Button>
+                    
                   </div>
                 </CardContent>
               </Card>
@@ -584,9 +565,7 @@ export default function DashboardPage() {
                 </CardContent>
                 {recentActivities.length > 0 && (
                   <CardFooter className="pt-0">
-                    <Button variant="ghost" size="sm" className="ml-auto">
-                      View all activity
-                    </Button>
+                    
                   </CardFooter>
                 )}
               </Card>

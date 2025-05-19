@@ -38,7 +38,8 @@ import {
   BookOpen,
   X,
   Terminal,
-  Settings2
+  Settings2,
+  LayoutDashboard
 } from 'lucide-react';
 import { Checkbox } from '../../src/components/ui/checkbox';
 import { Label } from '../../src/components/ui/label';
@@ -447,6 +448,15 @@ function SnippetsPageContent() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => router.push('/dashboard')}
+                className="flex items-center gap-1"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={toggleFilterVisibility}
                 className="flex items-center gap-1"
               >
@@ -524,7 +534,7 @@ function SnippetsPageContent() {
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="bottom" position="popper" className="w-48">
+              <DropdownMenuContent align="start" side="bottom" className="w-48">
                 <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -541,13 +551,7 @@ function SnippetsPageContent() {
                   <Clipboard className="mr-2 h-4 w-4" />
                   Most Used
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleSortChange('recently-used')}
-                  className={cn(sortBy === 'recently-used' && "bg-accent")}
-                >
-                  <Clock className="mr-2 h-4 w-4" />
-                  Recently Used
-                </DropdownMenuItem>
+               
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
