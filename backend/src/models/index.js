@@ -5,6 +5,7 @@ const Folder = require('./Folder');
 const SnippetTag = require('./SnippetTag');
 const SnippetFolder = require('./SnippetFolder');
 const UsageLog = require('./UsageLog');
+const OTPToken = require('./OTPToken');
 
 // User associations
 User.hasMany(Snippet, { foreignKey: 'userId' });
@@ -28,6 +29,8 @@ Folder.belongsToMany(Snippet, { through: SnippetFolder, foreignKey: 'folderId' }
 UsageLog.belongsTo(Snippet, { foreignKey: 'snippetId' });
 UsageLog.belongsTo(User, { foreignKey: 'userId' });
 
+// OTPToken associations
+
 module.exports = {
   User,
   Snippet,
@@ -36,4 +39,5 @@ module.exports = {
   SnippetTag,
   SnippetFolder,
   UsageLog,
+  OTPToken
 }; 

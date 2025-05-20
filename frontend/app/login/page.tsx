@@ -9,6 +9,7 @@ import { Input } from '../../src/components/ui/input';
 import { Label } from '../../src/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../src/components/ui/card';
 import { showErrorToast } from '../../lib/toast-utils';
+import { Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -41,57 +42,86 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Login to SnipStash</CardTitle>
           <CardDescription>
-            Enter your credentials to access your snippets
+            Access your code snippets library
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+        
+        <CardContent className="space-y-4">
+          <Button 
+            variant="outline"
+            className="w-full py-6 flex items-center justify-center gap-2"
+            onClick={() => router.push('/auth/email-login')}
+          >
+            <Mail className="h-5 w-5" />
+            <span className="font-medium">Login with Email OTP</span>
+          </Button>
+          
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with password</span>
+            </div>
+          </div>
+        
+          <form onSubmit={handleSubmit}>
             {error && (
-              <div className="p-3 rounded-md bg-red-500/10 text-red-500 text-sm">
+              <div className="p-3 rounded-md bg-red-500/10 text-red-500 text-sm mb-4">
                 {error}
               </div>
             )}
-            <div className="space-y-2">
+            
+            <div className="space-y-2 mb-4">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                required
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  className="pl-10"
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
+            
+            <div className="space-y-2 mb-6">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                required
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="pl-10"
+                  required
+                />
+              </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
+            
             <Button 
               type="submit" 
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? 'Logging in...' : 'Login'}
+              {isLoading ? 'Logging in...' : 'Login with Password'}
             </Button>
-            <div className="text-sm text-center mt-2">
+            
+            <div className="text-sm text-center mt-4">
               Don't have an account?{' '}
               <Link href="/register" className="text-primary hover:underline">
                 Register
               </Link>
             </div>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );

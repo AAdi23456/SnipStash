@@ -8,24 +8,23 @@ const tagRules = {
   'loop': /\b(for|while|forEach|do\s+while)\b/i,
   'API': /\b(fetch|axios|XMLHttpRequest|http\.get|\.ajax|\.post|api\.)\b/i,
   'error handling': /\b(try|catch|throw|finally|Error\()\b/i,
-  'array ops': /\.(map|filter|reduce|find|some|every|forEach)\(/i,
+  
   'debugging': /\b(console\.log|console\.debug|console\.error|console\.warn|debugger)\b/i,
   'async': /\b(async|await|Promise|then)\b/i,
   'DOM': /\b(document\.|window\.|querySelector|getElementById|addEventListener)\b/i,
-  'react': /\b(useState|useEffect|useContext|useRef|React\.)\b/i,
+  
   'condition': /\b(if|else|switch|case|ternary|conditional)\b/i,
   'function': /\b(function|=>\s*{|\(\)\s*=>|class\s+\w+)\b/i,
   // Additional tag rules
   'timing': /\b(setTimeout|setInterval|clearTimeout|clearInterval)\b/i,
   'OOP': /\b(class|constructor|extends|super|this\.)\b/i,
   'module': /\b(import|export|require|from)\b/i,
-  'MongoDB': /\b(mongoose|schema|model|findOne|findById)\b/i,
-  'Express': /\b(express|Router|app\.use|app\.get|app\.post|req\.|res\.)\b/i,
+  
+  
   'SQL': /\b(SELECT|INSERT|UPDATE|DELETE|JOIN|WHERE|sql|sequelize)\b/i,
   'auth': /\b(token|JWT|authenticate|authorization|passport|bcrypt)\b/i,
-  'security': /\b(crypto|encrypt|decrypt|hash|salt)\b/i,
-  'AI': /\b(ai|openai|gpt|llm|chatgpt|huggingface|transformer)\b/i,
-  'Machine Learning': /\b(ml|scikit|tensorflow|pytorch|train_test_split|model\.fit)\b/i
+ 
+  
 };
 
 /**
