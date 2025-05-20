@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('https://snipstash-9tms.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,8 +120,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Check if this is login (empty name) or signup (name provided)
       const isLogin = !name;
       const endpoint = isLogin 
-        ? 'http://localhost:5000/api/auth/email/request-login'
-        : 'http://localhost:5000/api/auth/email/request-verification';
+        ? 'https://snipstash-9tms.onrender.com/api/auth/email/request-login'
+        : 'https://snipstash-9tms.onrender.com/api/auth/email/request-verification';
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -167,8 +167,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Check if this is login (empty name) or signup (name provided)
       const isLogin = !name;
       const endpoint = isLogin 
-        ? 'http://localhost:5000/api/auth/email/verify-login'
-        : 'http://localhost:5000/api/auth/email/verify-signup';
+        ? 'https://snipstash-9tms.onrender.com/api/auth/email/verify-login'
+        : 'https://snipstash-9tms.onrender.com/api/auth/email/verify-signup';
       
       const response = await fetch(endpoint, {
         method: 'POST',
