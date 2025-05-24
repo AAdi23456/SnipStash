@@ -1,0 +1,13 @@
+package com.snipstash;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+
+@SpringBootApplication
+@EnableJpaAuditing
+public class SnipStashApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(SnipStashApplication.class, args);
+    }
+} 
